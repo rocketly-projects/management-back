@@ -1,0 +1,169 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Tenant {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  nombre       String
+  slug         String   @unique
+  plan         Plan     @default(BASIC)
+  activo       Boolean  @default(true)
+  creadoEn     DateTime @default(now())
+
+  productos     Producto[]
+  ventas        Venta[]
+  perfil        Perfil?
+  cajas         Caja[]
+  configuracion Configuracion?
+}
+
+model Perfil {
+  id            String   @id @default(cuid())
+  tenantId      String   @unique
+  nombreNegocio String
+  nombreDueno   String?
+  telefono      String?
+  direccion     String?
+  taxId         String?
+  moneda        String   @default("ARS")
+  logo          String?
+  creadoEn      DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+}
+
+model Configuracion {
+  id          String @id @default(cuid())
+  tenantId    String @unique
+  tema        Tema   @default(DARK)
+  accentColor String @default("#2563eb")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+}
+
+model Producto {
+  id            String   @id @default(cuid())
+  tenantId      String
+  sku           String?
+  nombre        String
+  marca         String?
+  precio        Decimal  @db.Decimal(10, 2)
+  costo         Decimal? @db.Decimal(10, 2)
+  stock         Int      @default(0)
+  stockAlert    Int      @default(5)
+  categoria     String?
+  imagen        String?
+  activo        Boolean  @default(true)
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  tenant     Tenant      @relation(fields: [tenantId], references: [id])
+  itemsVenta ItemVenta[]
+
+  @@index([tenantId])
+  @@index([tenantId, activo])
+  @@index([tenantId, sku])
+}
+
+model Venta {
+  id         String      @id @default(cuid())
+  tenantId   String
+  cajaId     String
+  numero     Int
+  total      Decimal     @db.Decimal(10, 2)
+  descuento  Decimal     @default(0) @db.Decimal(10, 2)
+  metodoPago MetodoPago
+  estado     EstadoVenta @default(COMPLETADA)
+  creadoEn   DateTime    @default(now())
+
+  tenant Tenant     @relation(fields: [tenantId], references: [id])
+  caja   Caja       @relation(fields: [cajaId], references: [id])
+  items  ItemVenta[]
+
+  @@unique([tenantId, numero])
+  @@index([tenantId])
+  @@index([tenantId, creadoEn])
+  @@index([cajaId])
+}
+
+model ItemVenta {
+  id             String  @id @default(cuid())
+  ventaId        String
+  productoId     String
+  cantidad       Int
+  precioUnitario Decimal @db.Decimal(10, 2)
+  subtotal       Decimal @db.Decimal(10, 2)
+
+  venta    Venta    @relation(fields: [ventaId], references: [id])
+  producto Producto @relation(fields: [productoId], references: [id])
+
+  @@index([ventaId])
+}
+
+model Caja {
+  id           String     @id @default(cuid())
+  tenantId     String
+  apertura     DateTime   @default(now())
+  cierre       DateTime?
+  montoInicial Decimal    @db.Decimal(10, 2)
+  montoCierre  Decimal?   @db.Decimal(10, 2)
+  notas        String?
+  estado       EstadoCaja @default(ABIERTA)
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  ventas Venta[]
+  gastos Gasto[]
+
+  @@index([tenantId])
+  @@index([tenantId, estado])
+}
+
+model Gasto {
+  id          String   @id @default(cuid())
+  cajaId      String
+  descripcion String
+  monto       Decimal  @db.Decimal(10, 2)
+  creadoEn    DateTime @default(now())
+
+  caja Caja @relation(fields: [cajaId], references: [id])
+
+  @@index([cajaId])
+}
+
+enum Plan {
+  BASIC
+  PRO
+  ENTERPRISE
+}
+
+enum MetodoPago {
+  EFECTIVO
+  DEBITO
+  CREDITO
+  TRANSFERENCIA
+  MERCADO_PAGO
+}
+
+enum EstadoVenta {
+  COMPLETADA
+  ANULADA
+  PENDIENTE
+}
+
+enum EstadoCaja {
+  ABIERTA
+  CERRADA
+}
+
+enum Tema {
+  LIGHT
+  DARK
+}
