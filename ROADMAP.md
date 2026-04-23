@@ -198,10 +198,41 @@ Rutas simples + revisión integral antes de marcar MVP.
 
 ```bash
 npm install
-cp .env.example .env         # completar credenciales reales de Supabase
+cp .env.example .env         # completar credenciales reales (ver abajo)
 npm run migrate -- --name init
 npm run dev                  # http://localhost:3000
 curl http://localhost:3000/health
 ```
 
-Para que `npm run migrate` funcione, `DIRECT_URL` debe apuntar al puerto **5432** de Supabase. Para queries en runtime, `DATABASE_URL` apunta al pooler en puerto **6543** con `pgbouncer=true`.
+### Cómo completar `.env`
+
+Las connection strings las encontrás en **Supabase → Project Settings → Database → Connection string**:
+
+| Variable | Fuente en Supabase | Puerto |
+|---|---|---|
+| `DATABASE_URL` | Connection pooler (Transaction mode) | 6543 + `?pgbouncer=true` |
+| `DIRECT_URL` | Direct connection | 5432 |
+| `JWT_SECRET` | Generá uno random: `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"` | — |
+| `FRONTEND_URL` | URL del frontend local o en producción | — |
+
+Para que `npm run migrate` funcione, `DIRECT_URL` debe apuntar al puerto **5432**. Para queries en runtime, `DATABASE_URL` usa el pooler en **6543** con `pgbouncer=true`.
+
+### Setup del MCP de Supabase (opcional, por dev)
+
+El MCP permite que Claude Code interactúe directamente con la base de datos (inspeccionar tablas, ejecutar queries, etc.). Es **por máquina** — nunca se committea.
+
+**Requisitos previos:**
+- Ser miembro del org de Rocketly en Supabase (pedirle al admin que te invite desde Organization → Team).
+- Generar tu propio PAT: **Account → Access Tokens → Generate new token**.
+
+**Configuración (una sola vez por máquina):**
+```bash
+claude mcp add --scope project --transport http \
+  supabase "https://mcp.supabase.com/mcp?project_ref=xehwpexnscnrghzxtnnn" \
+  --header "Authorization: Bearer sbp_TU_TOKEN_PERSONAL"
+```
+
+**Reglas:**
+- Cada dev genera **su propio PAT** — nunca compartir tokens.
+- `.mcp.json` está en `.gitignore` — nunca pushear.
+- Si rotás el PAT, repetí el comando con el token nuevo (`claude mcp remove supabase` primero).
