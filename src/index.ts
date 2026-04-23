@@ -3,6 +3,7 @@ import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import authRoutes from './routes/auth'
 import productosRoutes from './routes/productos'
+import cajaRoutes from './routes/caja'
 import { authMiddleware } from './middleware/auth'
 
 type Variables = {
@@ -34,7 +35,7 @@ app.route('/auth', authRoutes)
 const api = new Hono<{ Variables: Variables }>()
 api.use('*', authMiddleware)
 api.route('/productos', productosRoutes)
-// api.route('/caja',          cajaRoutes)          — Tanda 5
+api.route('/caja',     cajaRoutes)
 // api.route('/ventas',        ventasRoutes)         — Tanda 6
 // api.route('/perfil',        perfilRoutes)         — Tanda 7
 // api.route('/configuracion', configuracionRoutes)  — Tanda 7
