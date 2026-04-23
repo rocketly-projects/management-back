@@ -2,6 +2,8 @@ import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import authRoutes from './routes/auth'
+import productosRoutes from './routes/productos'
+import { authMiddleware } from './middleware/auth'
 
 type Variables = {
   tenantId: string
@@ -26,7 +28,18 @@ app.get('/health', (c) =>
 // ── Rutas públicas ────────────────────────────────────────────────────────────
 app.route('/auth', authRoutes)
 
-// ── Rutas protegidas (authMiddleware se monta por grupo en Tandas 4-7) ────────
+// ── Rutas protegidas ──────────────────────────────────────────────────────────
+// Un único sub-router con authMiddleware aplicado a todo el grupo.
+// Cada tanda nueva solo agrega una línea api.route(...) aquí.
+const api = new Hono<{ Variables: Variables }>()
+api.use('*', authMiddleware)
+api.route('/productos', productosRoutes)
+// api.route('/caja',          cajaRoutes)          — Tanda 5
+// api.route('/ventas',        ventasRoutes)         — Tanda 6
+// api.route('/perfil',        perfilRoutes)         — Tanda 7
+// api.route('/configuracion', configuracionRoutes)  — Tanda 7
+
+app.route('/', api)
 
 app.notFound((c) => c.json({ error: 'Not Found' }, 404))
 
