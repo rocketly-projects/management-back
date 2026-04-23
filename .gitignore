@@ -6,3 +6,5 @@ dist
 *.log
 .claude/
 .DS_Store
+# MCP config — contiene tokens de autenticación, nunca committear
+.mcp.json
