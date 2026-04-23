@@ -1,6 +1,7 @@
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
+import authRoutes from './routes/auth'
 
 type Variables = {
   tenantId: string
@@ -21,6 +22,11 @@ app.use(
 app.get('/health', (c) =>
   c.json({ status: 'ok', timestamp: new Date().toISOString() }),
 )
+
+// ── Rutas públicas ────────────────────────────────────────────────────────────
+app.route('/auth', authRoutes)
+
+// ── Rutas protegidas (authMiddleware se monta por grupo en Tandas 4-7) ────────
 
 app.notFound((c) => c.json({ error: 'Not Found' }, 404))
 
