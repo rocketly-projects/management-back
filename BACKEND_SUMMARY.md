@@ -62,7 +62,7 @@ Cada tenant es un negocio independiente. Toda query a la base lleva `tenantId` e
 **Ventas**
 | Método | Ruta | Descripción |
 |--------|------|-------------|
-| GET | `/ventas` | Listado paginado. Filtros: `page`, `limit`, `estado`, `cajaId` |
+| GET | `/ventas` | Listado paginado. Filtros: `page`, `limit`, `estado`, `cajaId`, `desde`, `hasta` (ISO 8601) |
 | GET | `/ventas/:id` | Detalle con items y datos del producto |
 | POST | `/ventas` | Crea venta en transacción atómica (ver detalle abajo) |
 | POST | `/ventas/:id/anular` | Anula venta y restaura stock en transacción |
@@ -92,6 +92,8 @@ Cada tenant es un negocio independiente. Toda query a la base lleva `tenantId` e
 6. Genera número autoincremental por tenant (evita race conditions)
 7. Crea `Venta` + `ItemVenta` anidados
 8. Decrementa stock de cada producto
+
+**Filtros de fecha en GET /ventas** — params opcionales `desde` y `hasta` en formato ISO 8601 (ej. `2026-04-24T00:00:00.000Z`). Filtran por `creadoEn` con `gte` / `lte`. Combinables con `estado`, `cajaId`, `page` y `limit`. Formato inválido devuelve 422.
 
 **Anular venta** — transacción:
 1. Verifica que la venta sea del tenant y esté en estado `COMPLETADA`

@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import { serve } from '@hono/node-server'
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
@@ -68,7 +69,7 @@ app.onError((err, c) => {
 })
 
 if (process.env.NODE_ENV !== 'production') {
-  const port = Number(process.env.PORT) || 3000
+  const port = Number(process.env.PORT) || 3001
   serve({ fetch: app.fetch, port })
   console.log(`Server running on http://localhost:${port}`)
 }

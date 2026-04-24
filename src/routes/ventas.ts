@@ -44,6 +44,8 @@ const querySchema = z.object({
   limit:  z.coerce.number().int().positive().max(100).default(20),
   estado: z.enum(['COMPLETADA', 'ANULADA', 'PENDIENTE']).optional(),
   cajaId: z.string().optional(),
+  desde:  z.string().datetime({ message: 'desde debe ser una fecha ISO 8601 válida' }).optional(),
+  hasta:  z.string().datetime({ message: 'hasta debe ser una fecha ISO 8601 válida' }).optional(),
 })
 
 // ── Tipos internos ────────────────────────────────────────────────────────────
@@ -90,12 +92,20 @@ const ventasRoutes = new Hono<{ Variables: Variables }>()
  */
 ventasRoutes.get('/', zvQuery(querySchema), async (c) => {
   const tenantId = c.get('tenantId')
-  const { page, limit, estado, cajaId } = c.req.valid('query')
+  const { page, limit, estado, cajaId, desde, hasta } = c.req.valid('query')
 
   const where = {
     tenantId,
     ...(estado ? { estado } : {}),
     ...(cajaId ? { cajaId } : {}),
+    ...(desde || hasta
+      ? {
+          creadoEn: {
+            ...(desde ? { gte: new Date(desde) } : {}),
+            ...(hasta ? { lte: new Date(hasta) } : {}),
+          },
+        }
+      : {}),
   }
 
   const [ventas, total] = await prisma.$transaction([
