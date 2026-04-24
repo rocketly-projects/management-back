@@ -12,11 +12,11 @@ El desarrollo está partido en **7 tandas** para validar el cableado incremental
 |-------|-------------|--------|
 | 1 | Scaffolding (configs + schema + index mínimo) | Completada |
 | 2 | Auth cableado (lib + middleware) | Completada |
-| 3 | Rutas de auth (`/auth/register`, `/auth/login`) | Pendiente |
-| 4 | Productos (CRUD completo + soft delete) | Pendiente |
-| 5 | Caja (apertura, cierre, gastos) | Pendiente |
-| 6 | Ventas (transacciones + stock + numeración atómica) | Pendiente |
-| 7 | Perfil + Configuración + pulido final | Pendiente |
+| 3 | Rutas de auth (`/auth/register`, `/auth/login`) | Completada |
+| 4 | Productos (CRUD completo + soft delete) | Completada |
+| 5 | Caja (apertura, cierre, gastos) | Completada |
+| 6 | Ventas (transacciones + stock + numeración atómica) | Completada |
+| 7 | Perfil + Configuración + pulido final | Completada |
 
 ---
 
@@ -76,7 +76,7 @@ Piezas compartidas que consumen las rutas protegidas.
 
 ---
 
-## Tanda 3 — Rutas de auth (Pendiente)
+## Tanda 3 — Rutas de auth (Completada)
 
 Primer punto de entrada usable del backend: registro y login.
 
@@ -99,7 +99,7 @@ Primer punto de entrada usable del backend: registro y login.
 
 ---
 
-## Tanda 4 — Productos (Pendiente)
+## Tanda 4 — Productos (Completada)
 
 Primer CRUD protegido. Establece el patrón de multi-tenancy + Zod + soft delete que se repite en el resto.
 
@@ -118,7 +118,7 @@ Primer CRUD protegido. Establece el patrón de multi-tenancy + Zod + soft delete
 
 ---
 
-## Tanda 5 — Caja (Pendiente)
+## Tanda 5 — Caja (Completada)
 
 Gestión de turnos de caja (apertura, cierre, gastos asociados).
 
@@ -135,7 +135,7 @@ Gestión de turnos de caja (apertura, cierre, gastos asociados).
 
 ---
 
-## Tanda 6 — Ventas (Pendiente)
+## Tanda 6 — Ventas (Completada)
 
 El flujo más crítico del backend — transacciones atómicas, control de stock, numeración secuencial por tenant.
 
@@ -158,7 +158,7 @@ El flujo más crítico del backend — transacciones atómicas, control de stock
 
 ---
 
-## Tanda 7 — Perfil + Configuración + pulido final (Pendiente)
+## Tanda 7 — Perfil + Configuración + pulido final (Completada)
 
 Rutas simples + revisión integral antes de marcar MVP.
 

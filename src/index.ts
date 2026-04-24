@@ -5,6 +5,8 @@ import authRoutes from './routes/auth'
 import productosRoutes from './routes/productos'
 import cajaRoutes from './routes/caja'
 import ventasRoutes from './routes/ventas'
+import perfilRoutes from './routes/perfil'
+import configuracionRoutes from './routes/configuracion'
 import { authMiddleware } from './middleware/auth'
 
 type Variables = {
@@ -35,11 +37,11 @@ app.route('/auth', authRoutes)
 // Cada tanda nueva solo agrega una línea api.route(...) aquí.
 const api = new Hono<{ Variables: Variables }>()
 api.use('*', authMiddleware)
-api.route('/productos', productosRoutes)
-api.route('/caja',     cajaRoutes)
-api.route('/ventas',   ventasRoutes)
-// api.route('/perfil',        perfilRoutes)         — Tanda 7
-// api.route('/configuracion', configuracionRoutes)  — Tanda 7
+api.route('/productos',     productosRoutes)
+api.route('/caja',          cajaRoutes)
+api.route('/ventas',        ventasRoutes)
+api.route('/perfil',        perfilRoutes)
+api.route('/configuracion', configuracionRoutes)
 
 app.route('/', api)
 
