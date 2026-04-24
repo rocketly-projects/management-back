@@ -7,6 +7,7 @@ import cajaRoutes from './routes/caja'
 import ventasRoutes from './routes/ventas'
 import perfilRoutes from './routes/perfil'
 import configuracionRoutes from './routes/configuracion'
+import reportesRoutes from './routes/reportes'
 import { authMiddleware } from './middleware/auth'
 
 type Variables = {
@@ -42,6 +43,7 @@ api.route('/caja',          cajaRoutes)
 api.route('/ventas',        ventasRoutes)
 api.route('/perfil',        perfilRoutes)
 api.route('/configuracion', configuracionRoutes)
+api.route('/reportes',      reportesRoutes)
 
 app.route('/', api)
 
