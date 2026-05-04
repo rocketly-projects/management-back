@@ -18,10 +18,15 @@ type Variables = {
 
 const app = new Hono<{ Variables: Variables }>()
 
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'http://localhost:3000',
+].filter(Boolean) as string[]
+
 app.use(
   '*',
   cors({
-    origin: process.env.FRONTEND_URL ?? 'http://localhost:3000',
+    origin: (origin) => (allowedOrigins.includes(origin) ? origin : allowedOrigins[0]),
     allowHeaders: ['Authorization', 'Content-Type'],
     allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   }),
