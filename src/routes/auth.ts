@@ -2,9 +2,9 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import { Prisma } from '@prisma/client'
 import bcrypt from 'bcryptjs'
-import { prisma } from '../lib/prisma'
-import { signJwt } from '../lib/jwt'
-import { zv } from '../lib/validator'
+import { prisma } from '../lib/prisma.js'
+import { signJwt } from '../lib/jwt.js'
+import { zv } from '../lib/validator.js'
 
 // ── Schemas ───────────────────────────────────────────────────────────────────
 

@@ -1,8 +1,8 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
-import { prisma } from '../lib/prisma'
-import { zvQuery } from '../lib/validator'
-import { parseFechaUTC, getRangoDia, getRangoAyer, getUltimos7Dias } from '../lib/date-ranges'
+import { prisma } from '../lib/prisma.js'
+import { zvQuery } from '../lib/validator.js'
+import { parseFechaUTC, getRangoDia, getRangoAyer, getUltimos7Dias } from '../lib/date-ranges.js'
 
 type Variables = { tenantId: string; email: string }
 

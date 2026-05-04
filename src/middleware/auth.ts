@@ -1,5 +1,5 @@
 import { createMiddleware } from 'hono/factory'
-import { verifyJwt } from '../lib/jwt'
+import { verifyJwt } from '../lib/jwt.js'
 
 type AuthVariables = {
   tenantId: string

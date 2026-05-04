@@ -1,8 +1,8 @@
 import { Hono } from 'hono'
 import { z } from 'zod'
 import type { Caja, Gasto } from '@prisma/client'
-import { prisma } from '../lib/prisma'
-import { zv } from '../lib/validator'
+import { prisma } from '../lib/prisma.js'
+import { zv } from '../lib/validator.js'
 
 type Variables = { tenantId: string; email: string }
 
