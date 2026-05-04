@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
-    "build": "prisma generate && esbuild api/index.ts --bundle --platform=node --format=esm --outfile=api/index.js --external:@prisma/client",
+    "build": "prisma generate && esbuild src/vercel-entry.ts --bundle --platform=node --format=esm --outfile=api/index.js --external:@prisma/client",
     "migrate": "prisma migrate dev",
     "studio": "prisma studio"
   },
