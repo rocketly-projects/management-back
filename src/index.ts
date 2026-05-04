@@ -18,14 +18,19 @@ type Variables = {
 
 const app = new Hono<{ Variables: Variables }>()
 
-app.use(
-  '*',
-  cors({
-    origin: process.env.FRONTEND_URL ?? 'http://localhost:3000',
-    allowHeaders: ['Authorization', 'Content-Type'],
-    allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  }),
-)
+// En producción (Vercel) el CORS lo manejan los headers de vercel.json a nivel CDN,
+// porque Vercel intercepta OPTIONS antes de llegar a la función.
+// En desarrollo local Hono lo maneja directamente.
+if (process.env.NODE_ENV !== 'production') {
+  app.use(
+    '*',
+    cors({
+      origin: process.env.FRONTEND_URL ?? 'http://localhost:3000',
+      allowHeaders: ['Authorization', 'Content-Type'],
+      allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    }),
+  )
+}
 
 app.get('/health', (c) =>
   c.json({ status: 'ok', timestamp: new Date().toISOString() }),
