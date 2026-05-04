@@ -1,4 +1,5 @@
 node_modules
+api/index.js
 .env
 dist
 .prisma

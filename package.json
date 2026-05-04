@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
-    "build": "prisma generate",
+    "build": "prisma generate && esbuild api/index.ts --bundle --platform=node --format=esm --outfile=api/index.js --external:@prisma/client",
     "migrate": "prisma migrate dev",
     "studio": "prisma studio"
   },
@@ -23,6 +23,7 @@
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^22.10.1",
+    "esbuild": "^0.28.0",
     "prisma": "^5.22.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2"
