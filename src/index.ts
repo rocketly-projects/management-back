@@ -5,10 +5,13 @@ import { cors } from 'hono/cors'
 import authRoutes from './routes/auth.js'
 import productosRoutes from './routes/productos.js'
 import cajaRoutes from './routes/caja.js'
+import gastosRoutes from './routes/gastos.js'
 import ventasRoutes from './routes/ventas.js'
 import perfilRoutes from './routes/perfil.js'
 import configuracionRoutes from './routes/configuracion.js'
 import reportesRoutes from './routes/reportes.js'
+import clientesRoutes from './routes/clientes.js'
+import pagosFiadoRoutes from './routes/pagos-fiado.js'
 import { authMiddleware } from './middleware/auth.js'
 
 type Variables = {
@@ -46,10 +49,13 @@ const api = new Hono<{ Variables: Variables }>()
 api.use('*', authMiddleware)
 api.route('/productos',     productosRoutes)
 api.route('/caja',          cajaRoutes)
+api.route('/gastos',        gastosRoutes)
 api.route('/ventas',        ventasRoutes)
 api.route('/perfil',        perfilRoutes)
 api.route('/configuracion', configuracionRoutes)
 api.route('/reportes',      reportesRoutes)
+api.route('/clientes',      clientesRoutes)
+api.route('/pagos-fiado',   pagosFiadoRoutes)
 
 app.route('/', api)
 

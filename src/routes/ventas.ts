@@ -30,13 +30,18 @@ const ventaSchema = z
     items:      z.array(itemSchema).min(1, 'La venta debe tener al menos un item'),
     descuento:  z.number().min(0, 'El descuento no puede ser negativo').default(0),
     metodoPago: z.enum(
-      ['EFECTIVO', 'DEBITO', 'CREDITO', 'TRANSFERENCIA', 'MERCADO_PAGO'],
+      ['EFECTIVO', 'DEBITO', 'CREDITO', 'TRANSFERENCIA', 'MERCADO_PAGO', 'FIADO'],
       { required_error: 'El método de pago es requerido' },
     ),
+    clienteId:  z.string().optional(),
   })
   .refine(
     (d) => new Set(d.items.map((i) => i.productoId)).size === d.items.length,
     { message: 'No puede haber productos duplicados en la misma venta', path: ['items'] },
+  )
+  .refine(
+    (d) => d.metodoPago !== 'FIADO' || !!d.clienteId,
+    { message: 'clienteId es requerido cuando el método de pago es FIADO', path: ['clienteId'] },
   )
 
 const querySchema = z.object({
@@ -168,13 +173,21 @@ ventasRoutes.get('/:id', async (c) => {
  */
 ventasRoutes.post('/', zv(ventaSchema), async (c) => {
   const tenantId = c.get('tenantId')
-  const { items, descuento, metodoPago } = c.req.valid('json')
+  const { items, descuento, metodoPago, clienteId } = c.req.valid('json')
 
   try {
     const venta = await prisma.$transaction(async (tx) => {
       // 1. Caja abierta
       const caja = await tx.caja.findFirst({ where: { tenantId, estado: 'ABIERTA' } })
       if (!caja) throw new BusinessError(400, 'No hay una caja abierta para registrar la venta')
+
+      // 1b. Cliente (si vino) debe pertenecer al tenant y estar activo
+      if (clienteId) {
+        const cliente = await tx.cliente.findFirst({
+          where: { id: clienteId, tenantId, activo: true },
+        })
+        if (!cliente) throw new BusinessError(404, 'Cliente no encontrado')
+      }
 
       // 2. Cargar productos
       const ids       = items.map((i: { productoId: string; cantidad: number }) => i.productoId)
@@ -232,6 +245,7 @@ ventasRoutes.post('/', zv(ventaSchema), async (c) => {
         data: {
           tenantId,
           cajaId: caja.id,
+          clienteId: clienteId ?? null,
           numero,
           total,
           descuento,
