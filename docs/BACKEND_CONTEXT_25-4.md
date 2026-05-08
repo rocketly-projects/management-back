@@ -464,14 +464,16 @@ Operación atómica. El back:
     { "productoId": "cuid", "cantidad": 2 }
   ],
   "descuento":  0,
-  "metodoPago": "EFECTIVO | DEBITO | CREDITO | TRANSFERENCIA | MERCADO_PAGO"
+  "metodoPago": "EFECTIVO | DEBITO | CREDITO | TRANSFERENCIA | MERCADO_PAGO | FIADO",
+  "clienteId":  "cuid — opcional (requerido si metodoPago=FIADO)"
 }
 ```
 
 > **Diferencias con front:**
 > - El front envía `cajaId` en el body — el back lo **ignora y lo resuelve internamente**. No rompe, pero es innecesario.
-> - Los métodos de pago del back son: `EFECTIVO`, `DEBITO`, `CREDITO`, `TRANSFERENCIA`, `MERCADO_PAGO`.
+> - Los métodos de pago del back son: `EFECTIVO`, `DEBITO`, `CREDITO`, `TRANSFERENCIA`, `MERCADO_PAGO`, `FIADO`.
 >   El front usa: `EFECTIVO`, `TARJETA_DEBITO`, `TARJETA_CREDITO`, `TRANSFERENCIA`, `OTRO`. **Este es un desajuste crítico.**
+> - Si `metodoPago=FIADO`, `clienteId` es obligatorio. La venta queda asociada al cliente y suma a su deuda hasta que se registren pagos en `/pagos-fiado`.
 
 **Respuesta 201:** venta completa con items (igual que `GET /ventas/:id`).
 
@@ -483,7 +485,9 @@ Operación atómica. El back:
 | `400` | Stock insuficiente (mensaje indica producto y cantidades) |
 | `400` | Descuento mayor al subtotal |
 | `404` | Producto no encontrado o inactivo |
+| `404` | Cliente no encontrado o inactivo (si `clienteId` viene en el body) |
 | `422` | Items duplicados en la misma venta |
+| `422` | `metodoPago=FIADO` sin `clienteId` |
 
 ### `POST /ventas/:id/anular`
 
@@ -491,6 +495,184 @@ Sin body. Anula una venta `COMPLETADA` y restaura el stock.
 
 **Respuesta 200:** venta con `estado: "ANULADA"`.
 **Errores:** `404` (no existe), `400` (ya anulada u otro estado).
+
+---
+
+## Clientes — `/clientes`
+
+Clientes del tenant. Se usan tanto para registrar ventas a nombre de alguien como para gestionar **fiado** (cuenta corriente).
+
+### `GET /clientes`
+
+**Query params (todos opcionales):**
+
+| Param | Tipo | Descripción |
+|---|---|---|
+| `search` | string | Filtra por `nombre` (case-insensitive, contains) |
+| `conDeuda` | `"true"` \| `"false"` | Si `"true"`, devuelve solo clientes con deuda > 0 e incluye campo `deuda` |
+| `activo` | `"true"` \| `"false"` | Default: solo activos (`"true"`) |
+
+**Respuesta 200:** array (sin paginación).
+
+```json
+[
+  {
+    "id":            "cuid",
+    "tenantId":      "cuid",
+    "nombre":        "string",
+    "email":         "string | null",
+    "telefono":      "string | null",
+    "direccion":     "string | null",
+    "notas":         "string | null",
+    "activo":        true,
+    "creadoEn":      "ISO 8601",
+    "actualizadoEn": "ISO 8601"
+  }
+]
+```
+
+> Si `conDeuda` está presente (sea `true` o `false`), cada item incluye además `"deuda": number` (deuda actual de fiado). Sin `conDeuda` el campo no se devuelve.
+
+### `GET /clientes/:id`
+
+Devuelve el cliente con su deuda calculada.
+
+```json
+{
+  "id":      "cuid",
+  "tenantId":"cuid",
+  "nombre":  "string",
+  "...":     "...",
+  "deuda":   0.00
+}
+```
+
+**Errores:** `404`.
+
+### `GET /clientes/:id/cuenta`
+
+Estado de cuenta: deuda actual + movimientos (ventas fiadas + pagos) ordenados por `fecha` desc.
+
+```json
+{
+  "cliente": {
+    "id":     "cuid",
+    "nombre": "string",
+    "...":    "..."
+  },
+  "deuda": 1250.00,
+  "movimientos": [
+    {
+      "tipo":        "VENTA_FIADO",
+      "id":          "cuid",
+      "fecha":       "ISO 8601",
+      "monto":       500.00,
+      "ventaNumero": 42,
+      "estado":      "COMPLETADA"
+    },
+    {
+      "tipo":       "PAGO_FIADO",
+      "id":         "cuid",
+      "fecha":      "ISO 8601",
+      "monto":      200.00,
+      "metodoPago": "EFECTIVO",
+      "ventaId":    "cuid | null",
+      "notas":      "string | null"
+    }
+  ]
+}
+```
+
+> `deuda = SUM(Venta.total | metodoPago=FIADO, estado != ANULADA) - SUM(PagoFiado.monto)`. Las ventas anuladas no suman.
+> `tipo` permite distinguir movimientos en el front sin tener que mirar la forma del objeto.
+
+**Errores:** `404`.
+
+### `POST /clientes`
+
+Solo `nombre` es obligatorio.
+
+```json
+{
+  "nombre":    "string — requerido",
+  "email":     "string — opcional (validado como email si viene)",
+  "telefono":  "string — opcional",
+  "direccion": "string — opcional",
+  "notas":     "string — opcional"
+}
+```
+
+**Respuesta 201:** cliente creado.
+
+> No hay constraint de unicidad en `email` — un mismo email puede aparecer en varios clientes (caso real: misma persona registrada dos veces, o emails compartidos en familias).
+
+### `PATCH /clientes/:id`
+
+Mismos campos que POST, todos opcionales. **Respuesta 200.** **Errores:** `404`.
+
+### `DELETE /clientes/:id`
+
+**Soft delete** — setea `activo = false`. Las ventas y pagos previos del cliente se mantienen.
+
+**Respuesta 200:**
+```json
+{ "message": "Cliente desactivado" }
+```
+
+**Errores:** `404`.
+
+---
+
+## Pagos de fiado — `/pagos-fiado`
+
+Registra abonos de un cliente contra su deuda de fiado. Cada pago descuenta del total adeudado.
+
+### `GET /pagos-fiado`
+
+**Query params (opcionales):**
+
+| Param | Tipo | Descripción |
+|---|---|---|
+| `clienteId` | string | Filtra por cliente |
+
+**Respuesta 200:** array ordenado por `creadoEn` desc.
+
+```json
+[
+  {
+    "id":         "cuid",
+    "tenantId":   "cuid",
+    "clienteId":  "cuid",
+    "ventaId":    "cuid | null",
+    "monto":      200.00,
+    "metodoPago": "EFECTIVO",
+    "notas":      "string | null",
+    "creadoEn":   "ISO 8601"
+  }
+]
+```
+
+### `POST /pagos-fiado`
+
+```json
+{
+  "clienteId":  "cuid — requerido",
+  "monto":      200.00,
+  "metodoPago": "EFECTIVO | DEBITO | CREDITO | TRANSFERENCIA | MERCADO_PAGO",
+  "ventaId":    "cuid — opcional (para imputar el pago a una venta puntual)",
+  "notas":      "string — opcional"
+}
+```
+
+**Validaciones:**
+- `monto > 0`
+- `metodoPago` **no puede ser `FIADO`** (un pago de fiado no se paga con fiado).
+- El cliente debe pertenecer al tenant y estar activo.
+- Si viene `ventaId`, la venta debe pertenecer al tenant y al cliente.
+
+**Respuesta 201:** pago creado.
+
+**Errores:** `404` (cliente o venta no encontrada), `422` (validación de schema).
 
 ---
 
@@ -658,7 +840,7 @@ Validaciones: `desde` ≤ `hasta`. Rango máximo: 366 días.
 
 ```
 Plan:         BASIC | PRO | ENTERPRISE
-MetodoPago:   EFECTIVO | DEBITO | CREDITO | TRANSFERENCIA | MERCADO_PAGO
+MetodoPago:   EFECTIVO | DEBITO | CREDITO | TRANSFERENCIA | MERCADO_PAGO | FIADO
 EstadoVenta:  COMPLETADA | ANULADA | PENDIENTE
 EstadoCaja:   ABIERTA | CERRADA
 Tema:         LIGHT | DARK
@@ -693,10 +875,10 @@ creadoEn, actualizadoEn
 
 ### Venta
 ```
-id, tenantId, cajaId, numero (Int — autoincremental por tenant), total (Decimal),
+id, tenantId, cajaId, clienteId?, numero (Int — autoincremental por tenant), total (Decimal),
 descuento (Decimal, default 0), metodoPago, estado (default COMPLETADA), creadoEn
 ```
-Constraint único: `(tenantId, numero)`.
+Constraint único: `(tenantId, numero)`. `clienteId` es opcional — solo se completa si la venta se asocia a un cliente (obligatorio cuando `metodoPago=FIADO`).
 
 ### ItemVenta
 ```
@@ -713,6 +895,19 @@ montoCierre? (Decimal), notas?, estado (default ABIERTA)
 ```
 id, cajaId, descripcion, monto (Decimal), creadoEn
 ```
+
+### Cliente
+```
+id, tenantId, nombre, email?, telefono?, direccion?, notas?,
+activo (default true), creadoEn, actualizadoEn
+```
+Sin unique en `email`. Soft delete via `activo`.
+
+### PagoFiado
+```
+id, tenantId, clienteId, ventaId?, monto (Decimal), metodoPago, notas?, creadoEn
+```
+`metodoPago` nunca debe ser `FIADO` (validado en service). `ventaId` opcional para imputar a una venta puntual.
 
 ---
 
