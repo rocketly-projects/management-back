@@ -12,6 +12,7 @@ import configuracionRoutes from './routes/configuracion.js'
 import reportesRoutes from './routes/reportes.js'
 import clientesRoutes from './routes/clientes.js'
 import pagosFiadoRoutes from './routes/pagos-fiado.js'
+import publicRoutes from './routes/public.js'
 import { authMiddleware } from './middleware/auth.js'
 
 type Variables = {
@@ -41,6 +42,7 @@ app.get('/health', (c) =>
 
 // ── Rutas públicas ────────────────────────────────────────────────────────────
 app.route('/auth', authRoutes)
+app.route('/public', publicRoutes)
 
 // ── Rutas protegidas ──────────────────────────────────────────────────────────
 // Un único sub-router con authMiddleware aplicado a todo el grupo.
