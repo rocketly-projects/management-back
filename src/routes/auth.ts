@@ -9,10 +9,13 @@ import { zv } from '../lib/validator.js'
 // ── Schemas ───────────────────────────────────────────────────────────────────
 
 const registerSchema = z.object({
-  email: z.string().email('Email inválido'),
-  password: z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
-  nombreNegocio: z.string().min(1, 'El nombre del negocio es requerido'),
+  email:       z.string().email('Email inválido'),
+  password:    z.string().min(8, 'La contraseña debe tener al menos 8 caracteres'),
+  nombre:      z.string().min(1, 'El nombre del negocio es requerido'),
   nombreDueno: z.string().optional(),
+  telefono:    z.string().optional(),
+  taxId:       z.string().optional(),
+  direccion:   z.string().optional(),
 })
 
 const loginSchema = z.object({
@@ -48,18 +51,6 @@ function generateSlug(nombre: string): string {
   return `${base}-${Date.now()}`
 }
 
-// Campos del tenant seguros para exponer (sin passwordHash)
-const tenantSelect = {
-  id: true,
-  email: true,
-  nombre: true,
-  nombreDisplay: true,
-  slug: true,
-  plan: true,
-  activo: true,
-  creadoEn: true,
-} as const
-
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 const authRoutes = new Hono()
@@ -70,11 +61,11 @@ const authRoutes = new Hono()
  * Retorna JWT + datos del tenant (sin passwordHash).
  */
 authRoutes.post('/register', zv(registerSchema), async (c) => {
-  const { email, password, nombreNegocio, nombreDueno } = c.req.valid('json')
+  const { email, password, nombre: nombreInput, nombreDueno, telefono, taxId, direccion } = c.req.valid('json')
 
   const passwordHash = await bcrypt.hash(password, 12)
-  const nombre = toCamelCase(nombreNegocio)
-  const slug = generateSlug(nombreNegocio)
+  const nombre = toCamelCase(nombreInput)
+  const slug = generateSlug(nombreInput)
 
   try {
     const tenant = await prisma.$transaction(async (tx) => {
@@ -83,20 +74,33 @@ authRoutes.post('/register', zv(registerSchema), async (c) => {
           email,
           passwordHash,
           nombre,
-          nombreDisplay: nombreNegocio,
+          nombreDisplay: nombreInput,
           slug,
           perfil: {
             create: {
               nombreDueno: nombreDueno ?? null,
+              telefono:    telefono    ?? null,
+              taxId:       taxId       ?? null,
+              direccion:   direccion   ?? null,
             },
           },
         },
-        select: tenantSelect,
+        include: {
+          perfil: true,
+        },
       })
     })
 
+    const { passwordHash: _, perfil, ...tenantData } = tenant
     const token = await signJwt({ tenantId: tenant.id, email: tenant.email })
-    return c.json({ token, tenant }, 201)
+    return c.json({
+      token,
+      perfil: {
+        ...perfil,
+        tenantNombre:        tenantData.nombre,
+        tenantNombreDisplay: tenantData.nombreDisplay,
+      },
+    }, 201)
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
       return c.json({ error: 'El email o nombre de negocio ya está registrado' }, 409)
