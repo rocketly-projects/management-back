@@ -6,8 +6,8 @@ const publicRoutes = new Hono()
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 async function findTenantByNombre(nombre: string) {
-  return prisma.tenant.findUnique({
-    where: { nombre },
+  return prisma.tenant.findFirst({
+    where: { nombre: { equals: nombre, mode: 'insensitive' } },
     include: { perfil: true },
   })
 }
@@ -46,7 +46,10 @@ publicRoutes.get('/:nombre/productos', async (c) => {
   const categoria = c.req.query('categoria')
   const busqueda = c.req.query('busqueda')
 
-  const tenant = await prisma.tenant.findUnique({ where: { nombre }, select: { id: true, activo: true } })
+  const tenant = await prisma.tenant.findFirst({
+    where: { nombre: { equals: nombre, mode: 'insensitive' } },
+    select: { id: true, activo: true },
+  })
   if (!tenant || !tenant.activo) {
     return c.json({ message: 'Negocio no encontrado' }, 404)
   }
@@ -89,7 +92,10 @@ publicRoutes.get('/:nombre/productos', async (c) => {
 publicRoutes.get('/:nombre/productos/categorias', async (c) => {
   const nombre = c.req.param('nombre')
 
-  const tenant = await prisma.tenant.findUnique({ where: { nombre }, select: { id: true, activo: true } })
+  const tenant = await prisma.tenant.findFirst({
+    where: { nombre: { equals: nombre, mode: 'insensitive' } },
+    select: { id: true, activo: true },
+  })
   if (!tenant || !tenant.activo) {
     return c.json({ message: 'Negocio no encontrado' }, 404)
   }
