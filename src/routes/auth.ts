@@ -22,12 +22,25 @@ const loginSchema = z.object({
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+/**
+ * Convierte un nombre legible a camelCase sin espacios.
+ * "Lo del Tero"   → "loDelTero"
+ * "kiosco centro" → "kioscoCentro"
+ * "El   Rápido"   → "elRápido"
+ */
+function toCamelCase(nombre: string): string {
+  const words = nombre.trim().split(/\s+/)
+  return words
+    .map((w, i) => (i === 0 ? w.toLowerCase() : w.charAt(0).toUpperCase() + w.slice(1)))
+    .join('')
+}
+
 function generateSlug(nombre: string): string {
   const base =
     nombre
       .toLowerCase()
       .normalize('NFD')
-      .replace(/[\u0300-\u036f]/g, '') // elimina tildes
+      .replace(/[\u0300-\u036f]/g, '')
       .replace(/\s+/g, '-')
       .replace(/[^a-z0-9-]/g, '')
       .replace(/-+/g, '-')
@@ -40,6 +53,7 @@ const tenantSelect = {
   id: true,
   email: true,
   nombre: true,
+  nombreDisplay: true,
   slug: true,
   plan: true,
   activo: true,
@@ -59,6 +73,7 @@ authRoutes.post('/register', zv(registerSchema), async (c) => {
   const { email, password, nombreNegocio, nombreDueno } = c.req.valid('json')
 
   const passwordHash = await bcrypt.hash(password, 12)
+  const nombre = toCamelCase(nombreNegocio)
   const slug = generateSlug(nombreNegocio)
 
   try {
@@ -67,11 +82,11 @@ authRoutes.post('/register', zv(registerSchema), async (c) => {
         data: {
           email,
           passwordHash,
-          nombre: nombreNegocio,
+          nombre,
+          nombreDisplay: nombreNegocio,
           slug,
           perfil: {
             create: {
-              nombreNegocio,
               nombreDueno: nombreDueno ?? null,
             },
           },
@@ -84,7 +99,7 @@ authRoutes.post('/register', zv(registerSchema), async (c) => {
     return c.json({ token, tenant }, 201)
   } catch (e) {
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
-      return c.json({ error: 'El email ya está registrado' }, 409)
+      return c.json({ error: 'El email o nombre de negocio ya está registrado' }, 409)
     }
     throw e
   }
