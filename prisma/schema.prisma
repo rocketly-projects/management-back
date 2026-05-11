@@ -10,14 +10,15 @@ datasource db {
 }
 
 model Tenant {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  nombre       String
-  slug         String   @unique
-  plan         Plan     @default(BASIC)
-  activo       Boolean  @default(true)
-  creadoEn     DateTime @default(now())
+  id            String   @id @default(cuid())
+  email         String   @unique
+  passwordHash  String
+  nombre        String   @unique
+  nombreDisplay String?
+  slug          String   @unique
+  plan          Plan     @default(BASIC)
+  activo        Boolean  @default(true)
+  creadoEn      DateTime @default(now())
 
   productos     Producto[]
   ventas        Venta[]
@@ -29,10 +30,9 @@ model Tenant {
 }
 
 model Perfil {
-  id            String   @id @default(cuid())
-  tenantId      String   @unique
-  nombreNegocio String
-  nombreDueno   String?
+  id          String   @id @default(cuid())
+  tenantId    String   @unique
+  nombreDueno String?
   telefono      String?
   direccion     String?
   taxId         String?
