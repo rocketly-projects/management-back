@@ -12,7 +12,8 @@ import configuracionRoutes from './routes/configuracion.js'
 import reportesRoutes from './routes/reportes.js'
 import clientesRoutes from './routes/clientes.js'
 import pagosFiadoRoutes from './routes/pagos-fiado.js'
-import publicRoutes from './routes/public.js'
+import publicRoutes     from './routes/public.js'
+import ticketsRoutes    from './routes/tickets.js'
 import { authMiddleware } from './middleware/auth.js'
 
 type Variables = {
@@ -58,6 +59,7 @@ api.route('/configuracion', configuracionRoutes)
 api.route('/reportes',      reportesRoutes)
 api.route('/clientes',      clientesRoutes)
 api.route('/pagos-fiado',   pagosFiadoRoutes)
+api.route('/tickets',       ticketsRoutes)
 
 app.route('/', api)
 
