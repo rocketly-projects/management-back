@@ -27,18 +27,24 @@ model Tenant {
   configuracion Configuracion?
   clientes      Cliente[]
   pagosFiado    PagoFiado[]
+  facturas      Factura[]
 }
 
 model Perfil {
-  id          String   @id @default(cuid())
-  tenantId    String   @unique
-  nombreDueno String?
-  telefono      String?
-  direccion     String?
-  taxId         String?
-  moneda        String   @default("ARS")
-  logo          String?
-  creadoEn      DateTime @default(now())
+  id                   String            @id @default(cuid())
+  tenantId             String            @unique
+  nombreDueno          String?
+  telefono             String?
+  direccion            String?
+  taxId                String?
+  moneda               String            @default("ARS")
+  logo                 String?
+  tipoContribuyente    TipoContribuyente @default(MONOTRIBUTISTA)
+  categoriaMonotributo String?
+  puntoVenta           Int?
+  ingresosBrutos       String?
+  fechaInicioActividad DateTime?
+  creadoEn             DateTime          @default(now())
 
   tenant Tenant @relation(fields: [tenantId], references: [id])
 }
@@ -93,6 +99,7 @@ model Venta {
   cliente    Cliente?    @relation(fields: [clienteId], references: [id])
   items      ItemVenta[]
   pagosFiado PagoFiado[]
+  factura    Factura?
 
   @@unique([tenantId, numero])
   @@index([tenantId])
@@ -102,16 +109,18 @@ model Venta {
 }
 
 model Cliente {
-  id            String   @id @default(cuid())
+  id            String       @id @default(cuid())
   tenantId      String
   nombre        String
   email         String?
   telefono      String?
   direccion     String?
   notas         String?
-  activo        Boolean  @default(true)
-  creadoEn      DateTime @default(now())
-  actualizadoEn DateTime @updatedAt
+  cuit          String?
+  condicionIva  CondicionIva @default(CONSUMIDOR_FINAL)
+  activo        Boolean      @default(true)
+  creadoEn      DateTime     @default(now())
+  actualizadoEn DateTime     @updatedAt
 
   tenant     Tenant      @relation(fields: [tenantId], references: [id])
   ventas     Venta[]
@@ -132,9 +141,9 @@ model PagoFiado {
   notas      String?
   creadoEn   DateTime   @default(now())
 
-  tenant  Tenant   @relation(fields: [tenantId], references: [id])
-  cliente Cliente  @relation(fields: [clienteId], references: [id])
-  venta   Venta?   @relation(fields: [ventaId], references: [id])
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  cliente Cliente @relation(fields: [clienteId], references: [id])
+  venta   Venta?  @relation(fields: [ventaId], references: [id])
 
   @@index([tenantId])
   @@index([clienteId])
@@ -214,4 +223,78 @@ enum EstadoCaja {
 enum Tema {
   LIGHT
   DARK
+}
+
+enum TipoContribuyente {
+  MONOTRIBUTISTA
+  RESPONSABLE_INSCRIPTO
+  EXENTO
+  CONSUMIDOR_FINAL
+}
+
+enum CondicionIva {
+  RESPONSABLE_INSCRIPTO
+  MONOTRIBUTISTA
+  EXENTO
+  CONSUMIDOR_FINAL
+  NO_CATEGORIZADO
+}
+
+enum TipoComprobante {
+  FACTURA_A
+  FACTURA_B
+  FACTURA_C
+  FACTURA_M
+  FACTURA_E
+  NOTA_CREDITO_A
+  NOTA_CREDITO_B
+  NOTA_CREDITO_C
+  NOTA_DEBITO_A
+  NOTA_DEBITO_B
+  NOTA_DEBITO_C
+}
+
+enum EstadoFactura {
+  PENDIENTE
+  EMITIDA
+  RECHAZADA
+  ANULADA
+}
+
+model Factura {
+  id             String          @id @default(cuid())
+  tenantId       String
+  ventaId        String          @unique
+  tipo           TipoComprobante
+  puntoVenta     Int
+  numero         Int
+  cae            String?
+  vencimientoCae DateTime?
+  fechaEmision   DateTime        @default(now())
+
+  importeNeto      Decimal @db.Decimal(14, 2)
+  importeIva21     Decimal @default(0) @db.Decimal(14, 2)
+  importeIva105    Decimal @default(0) @db.Decimal(14, 2)
+  importeIva27     Decimal @default(0) @db.Decimal(14, 2)
+  importeNoGravado Decimal @default(0) @db.Decimal(14, 2)
+  importeExento    Decimal @default(0) @db.Decimal(14, 2)
+  importeTotal     Decimal @db.Decimal(14, 2)
+
+  condicionIvaReceptor CondicionIva
+  cuitReceptor         String?
+  nombreReceptor       String?
+  domicilioReceptor    String?
+
+  estado      EstadoFactura @default(PENDIENTE)
+  mensajeArca String?
+  qrUrl       String?
+
+  creadoEn      DateTime @default(now())
+  actualizadoEn DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  venta  Venta  @relation(fields: [ventaId], references: [id])
+
+  @@unique([tenantId, puntoVenta, tipo, numero])
+  @@index([tenantId, fechaEmision])
 }
